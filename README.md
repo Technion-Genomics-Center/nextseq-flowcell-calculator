@@ -55,12 +55,18 @@ edits — the calculation has no other safety net.
 
 ### Decisions that look like bugs but are not
 
-- **Flowcell ranking is tier-then-cycles** (P1 < P2 < P3 < P4, then cycle count), *not*
-  read output. Sorting by output puts P2 600 (300 M) ahead of P2 100 (400 M) and
-  recommends the far more expensive kit. Add real prices to `flowcells.csv` if you want
-  true cost sorting.
-- **`floor()` carries a `+ 1e-9` epsilon.** `60 / (0.05 / 0.85)` is 1019.9999… in floating
-  point and would floor to 1019 instead of 1020.
+- **Flowcell ranking is an explicit `cost_rank` list**, not a formula. Every derived proxy
+  is wrong: output size puts P2 600 (300 M) ahead of P2 100 (400 M); flowcell tier puts
+  P3 100 ahead of the cheaper P4 50; cycle count puts P4 100 ahead of P1 300. Only the
+  **P4 50 < P3 100** relationship is confirmed by ATGC — the rest of the order is seeded
+  and should be replaced with the real price list. See `CALCULATION.md`.
+- **There is no QC/alignment loss factor.** A "usable read fraction" was removed on
+  purpose: the value is unknowable up front and it silently inflated every depth request.
+  Reads are raw sequencer output.
+- **`floor()` carries a `+ 1e-9` epsilon**, or divisions like `60 / 0.1` land on
+  599.9999… and floor to 599 instead of 600.
+- **No hidden parameters.** Every input, PhiX included, is visible in the form. There is
+  no "Advanced" section — it previously hid PhiX, which materially changes capacity.
 - **No dark mode.** Deliberately removed so the tool matches the light-only ATGC site.
 - **Tooltips toggle on tap, not just hover.** Hover-only made every explanation
   unreachable on phones. Do not revert to `:hover` alone.

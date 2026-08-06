@@ -127,8 +127,6 @@
 
   .note{font-size:12px;color:var(--muted);margin-top:6px}
   .note.lock{color:#b06a12}
-  .adv summary{cursor:pointer;font-size:12.5px;color:var(--muted);padding-top:4px;user-select:none;font-weight:600}
-  .adv[open] summary{margin-bottom:13px}
 
   .btn{
     padding:8px 14px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;
@@ -304,20 +302,11 @@
           <input type="number" id="genomeSize" min="0" step="1">
         </div>
 
-        <details class="adv">
-          <summary>Advanced</summary>
-
-          <div class="field">
-            <label class="lbl" for="phix">PhiX control library <span class="unit">% of flowcell</span> <span id="t_phix_percent"></span></label>
-            <input type="number" id="phix" min="0" max="99" step="1">
-            <div class="note" id="phixNote"></div>
-          </div>
-
-          <div class="field">
-            <label class="lbl" for="usable">Usable read fraction <span id="t_usable_read_fraction"></span></label>
-            <input type="number" id="usable" min="0.05" max="1" step="0.05">
-          </div>
-        </details>
+        <div class="field">
+          <label class="lbl" for="phix">PhiX control library <span class="unit">% of flowcell</span> <span id="t_phix_percent"></span></label>
+          <input type="number" id="phix" min="0" max="99" step="1">
+          <div class="note" id="phixNote"></div>
+        </div>
 
         <div style="margin-top:16px"><button class="btn" id="reset">Reset to defaults</button></div>
       </div>
@@ -336,20 +325,20 @@
 <script>
 /* ---------------- data (from flowcells.csv) ---------------- */
 const FLOWCELLS = [
-  {id:"p1_100", name:"P1 100 cycles", tier:1, cycles:100, se:100, pe:50,   readsM:100},
-  {id:"p1_300", name:"P1 300 cycles", tier:1, cycles:300, se:300, pe:150,  readsM:100},
-  {id:"p1_600", name:"P1 600 cycles", tier:1, cycles:600, se:null, pe:300, readsM:100},
-  {id:"p2_100", name:"P2 100 cycles", tier:2, cycles:100, se:100, pe:50,   readsM:400},
-  {id:"p2_200", name:"P2 200 cycles", tier:2, cycles:200, se:150, pe:100,  readsM:400},
-  {id:"p2_300", name:"P2 300 cycles", tier:2, cycles:300, se:null, pe:150, readsM:400},
-  {id:"p2_600", name:"P2 600 cycles", tier:2, cycles:600, se:null, pe:300, readsM:300},
-  {id:"p3_100", name:"P3 100 cycles", tier:3, cycles:100, se:100, pe:50,   readsM:1200},
-  {id:"p3_200", name:"P3 200 cycles", tier:3, cycles:200, se:150, pe:100,  readsM:1200},
-  {id:"p3_300", name:"P3 300 cycles", tier:3, cycles:300, se:null, pe:150, readsM:1200},
-  {id:"p4_50",  name:"P4 50 cycles",  tier:4, cycles:50,  se:72,  pe:null, readsM:1800},
-  {id:"p4_100", name:"P4 100 cycles", tier:4, cycles:100, se:100, pe:50,   readsM:1800},
-  {id:"p4_200", name:"P4 200 cycles", tier:4, cycles:200, se:150, pe:100,  readsM:1800},
-  {id:"p4_300", name:"P4 300 cycles", tier:4, cycles:300, se:null, pe:150, readsM:1800}
+  {id:"p1_100", name:"P1 100 cycles", costRank:1, tier:1, cycles:100, se:100, pe:50,   readsM:100},
+  {id:"p1_300", name:"P1 300 cycles", costRank:2, tier:1, cycles:300, se:300, pe:150,  readsM:100},
+  {id:"p1_600", name:"P1 600 cycles", costRank:3, tier:1, cycles:600, se:null, pe:300, readsM:100},
+  {id:"p2_100", name:"P2 100 cycles", costRank:4, tier:2, cycles:100, se:100, pe:50,   readsM:400},
+  {id:"p2_200", name:"P2 200 cycles", costRank:5, tier:2, cycles:200, se:150, pe:100,  readsM:400},
+  {id:"p2_300", name:"P2 300 cycles", costRank:6, tier:2, cycles:300, se:null, pe:150, readsM:400},
+  {id:"p2_600", name:"P2 600 cycles", costRank:8, tier:2, cycles:600, se:null, pe:300, readsM:300},
+  {id:"p3_100", name:"P3 100 cycles", costRank:9, tier:3, cycles:100, se:100, pe:50,   readsM:1200},
+  {id:"p3_200", name:"P3 200 cycles", costRank:10, tier:3, cycles:200, se:150, pe:100,  readsM:1200},
+  {id:"p3_300", name:"P3 300 cycles", costRank:11, tier:3, cycles:300, se:null, pe:150, readsM:1200},
+  {id:"p4_50",  name:"P4 50 cycles",  costRank:7, tier:4, cycles:50,  se:72,  pe:null, readsM:1800},
+  {id:"p4_100", name:"P4 100 cycles", costRank:12, tier:4, cycles:100, se:100, pe:50,   readsM:1800},
+  {id:"p4_200", name:"P4 200 cycles", costRank:13, tier:4, cycles:200, se:150, pe:100,  readsM:1800},
+  {id:"p4_300", name:"P4 300 cycles", costRank:14, tier:4, cycles:300, se:null, pe:150, readsM:1800}
 ];
 
 /* ---------------- data (from applications.csv) ---------------- */
@@ -373,29 +362,29 @@ const LOW_DIVERSITY_WARNING =
   '</div>';
 
 const APPS = [
-  {id:"rnaseq_polya", name:"RNAseq polyA", driver:"reads", mode:"SE", rl:72, rlMax:100, minRL:72, reads:25, cov:null, genome:null, samples:12, phix:2, usable:0.85, lowDiversity:false, link:L("rna-seq"), linkLabel:"RNA-seq",
+  {id:"rnaseq_polya", name:"RNAseq polyA", driver:"reads", mode:"SE", rl:72, rlMax:100, minRL:72, reads:25, cov:null, genome:null, samples:12, phix:2, lowDiversity:false, link:L("rna-seq"), linkLabel:"RNA-seq",
    note:"Standard mRNA profiling / differential expression. 25 M reads per sample."},
-  {id:"rnaseq_rrna_mammalian", name:"RNAseq mammalian rRNA depletion", driver:"reads", mode:"SE", rl:72, rlMax:100, minRL:72, reads:40, cov:null, genome:null, samples:12, phix:2, usable:0.85, lowDiversity:false, link:L("rna-seq"), linkLabel:"RNA-seq",
+  {id:"rnaseq_rrna_mammalian", name:"RNAseq mammalian rRNA depletion", driver:"reads", mode:"SE", rl:72, rlMax:100, minRL:72, reads:40, cov:null, genome:null, samples:12, phix:2, lowDiversity:false, link:L("rna-seq"), linkLabel:"RNA-seq",
    note:"Total RNA — deeper than polyA to cover residual rRNA, intronic and non-coding reads."},
-  {id:"rnaseq_rrna_bacteria", name:"RNAseq bacteria rRNA depletion", driver:"reads", mode:"SE", rl:72, rlMax:100, minRL:72, reads:20, cov:null, genome:null, samples:12, phix:2, usable:0.85, lowDiversity:false, link:L("rna-seq"), linkLabel:"RNA-seq",
+  {id:"rnaseq_rrna_bacteria", name:"RNAseq bacteria rRNA depletion", driver:"reads", mode:"SE", rl:72, rlMax:100, minRL:72, reads:20, cov:null, genome:null, samples:12, phix:2, lowDiversity:false, link:L("rna-seq"), linkLabel:"RNA-seq",
    note:"Small transcriptome — 20 M reads per sample is sufficient."},
-  {id:"assembly_denovo", name:"Assembly de novo", driver:"coverage", mode:"PE", rl:300, minRL:150, reads:null, cov:60, genome:5, samples:4, phix:2, usable:0.85, lowDiversity:false, link:L("dna-seq"), linkLabel:"DNA-seq",
+  {id:"assembly_denovo", name:"Assembly de novo", driver:"coverage", mode:"PE", rl:300, minRL:150, reads:null, cov:60, genome:5, samples:4, phix:2, lowDiversity:false, link:L("dna-seq"), linkLabel:"DNA-seq",
    note:"Genome size 5 Mb = bacterial isolate — set your real target size. 2×300 needs a 600-cycle kit."},
-  {id:"variant_germline", name:"Variant analysis (germline, >50%)", driver:"coverage", mode:"SE", rl:100, minRL:100, reads:null, cov:40, genome:3200, samples:8, phix:2, usable:0.85, lowDiversity:false, link:L("dna-seq"), linkLabel:"DNA-seq",
+  {id:"variant_germline", name:"Variant analysis (germline, >50%)", driver:"coverage", mode:"SE", rl:100, minRL:100, reads:null, cov:40, genome:3200, samples:8, phix:2, lowDiversity:false, link:L("dna-seq"), linkLabel:"DNA-seq",
    note:"Human WGS at 40x. Single-end needs twice the reads of paired-end for the same coverage."},
-  {id:"variant_lowfreq", name:"Variant analysis (<50%)", driver:"coverage", mode:"SE", rl:100, minRL:100, reads:null, cov:100, genome:3200, samples:8, phix:2, usable:0.85, lowDiversity:false, link:L("dna-seq"), linkLabel:"DNA-seq",
+  {id:"variant_lowfreq", name:"Variant analysis (<50%)", driver:"coverage", mode:"SE", rl:100, minRL:100, reads:null, cov:100, genome:3200, samples:8, phix:2, lowDiversity:false, link:L("dna-seq"), linkLabel:"DNA-seq",
    note:"100x. For a targeted panel, enter the panel size as genome size — not 3200 Mb."},
-  {id:"amplicons", name:"Amplicons", driver:"reads", mode:"PE", rl:300, minRL:250, reads:null, cov:null, genome:null, samples:48, phix:40, usable:0.85, lowDiversity:true, link:L("amplicon-seq"), linkLabel:"Amplicon-seq",
+  {id:"amplicons", name:"Amplicons", driver:"reads", mode:"PE", rl:300, minRL:250, reads:null, cov:null, genome:null, samples:48, phix:40, lowDiversity:true, link:L("amplicon-seq"), linkLabel:"Amplicon-seq",
    note:"Reads per sample is not set in applications.csv — enter a value to get a recommendation. Low-diversity library: 40% PhiX control required."},
-  {id:"16s", name:"16S", driver:"reads", mode:"PE", rl:300, minRL:250, reads:0.1, cov:null, genome:null, samples:96, phix:40, usable:0.85, lowDiversity:true, link:L("amplicon-seq"), linkLabel:"Amplicon-seq",
+  {id:"16s", name:"16S", driver:"reads", mode:"PE", rl:300, minRL:250, reads:0.1, cov:null, genome:null, samples:96, phix:40, lowDiversity:true, link:L("amplicon-seq"), linkLabel:"Amplicon-seq",
    note:"100 k reads per sample. V3–V4 needs 2×300 to overlap. Low-diversity library: 40% PhiX control required."},
-  {id:"metagenomics", name:"Metagenomics", driver:"coverage", mode:"PE", rl:150, minRL:100, reads:100, cov:10, genome:5000, samples:8, phix:2, usable:0.85, lowDiversity:false, link:L("metagenomics"), linkLabel:"Metagenomics",
+  {id:"metagenomics", name:"Metagenomics", driver:"coverage", mode:"PE", rl:150, minRL:100, reads:100, cov:10, genome:5000, samples:8, phix:2, lowDiversity:false, link:L("metagenomics"), linkLabel:"Metagenomics",
    note:"Coverage-driven: genome size = estimated total community size, 10x is survey-level only. (The 100 M reads/sample in the CSV is unused while driver = coverage.)"},
-  {id:"chipseq_histone", name:"ChIP-seq / CUT&RUN (histone mark)", driver:"reads", mode:"PE", rl:50, minRL:null, reads:40, cov:null, genome:null, samples:12, phix:2, usable:0.85, lowDiversity:false, link:L("chip-seq"), linkLabel:"ChIP-seq",
+  {id:"chipseq_histone", name:"ChIP-seq / CUT&RUN (histone mark)", driver:"reads", mode:"PE", rl:50, minRL:null, reads:40, cov:null, genome:null, samples:12, phix:2, lowDiversity:false, link:L("chip-seq"), linkLabel:"ChIP-seq",
    note:"Broad marks need more depth than transcription factors. 40 M reads per sample."},
-  {id:"chipseq_tf", name:"ChIP-seq / CUT&RUN (transcription factor)", driver:"reads", mode:"PE", rl:50, minRL:null, reads:30, cov:null, genome:null, samples:12, phix:2, usable:0.85, lowDiversity:false, link:L("chip-seq"), linkLabel:"ChIP-seq",
+  {id:"chipseq_tf", name:"ChIP-seq / CUT&RUN (transcription factor)", driver:"reads", mode:"PE", rl:50, minRL:null, reads:30, cov:null, genome:null, samples:12, phix:2, lowDiversity:false, link:L("chip-seq"), linkLabel:"ChIP-seq",
    note:"Sharp peaks. 30 M reads per sample; CUT&RUN typically needs less."},
-  {id:"rrbs", name:"RRBS", driver:"reads", mode:"PE", rl:50, minRL:null, reads:40, cov:null, genome:null, samples:12, phix:30, usable:0.85, lowDiversity:false, link:L("dna-methylation"), linkLabel:"DNA Methylation",
+  {id:"rrbs", name:"RRBS", driver:"reads", mode:"PE", rl:50, minRL:null, reads:40, cov:null, genome:null, samples:12, phix:30, lowDiversity:false, link:L("dna-methylation"), linkLabel:"DNA Methylation",
    note:"Reduced base diversity at the MspI site — 30% PhiX spike. 40 M reads per sample."}
 ];
 
@@ -412,7 +401,7 @@ const TIPS = {
     "PE doubles the bases per cluster, so it halves the reads needed for a given coverage — but it needs twice the cycles. Use PE for assembly, variants, and anything needing overlap; SE is usually enough for counting applications like ChIP-seq."],
   num_reads: ["Number of reads",
     "Sequencing depth per sample, in millions. For paired-end, one read PAIR counts as one read.",
-    "This is the usable depth you need after QC and alignment; the tool divides by the usable read fraction to get the raw reads it reserves. Under-sequencing is the most common reason a run has to be repeated."],
+    "Under-sequencing is the most common reason a run has to be repeated — if unsure, use the application default. Note this is raw sequencer output; some reads are always lost to QC, trimming, and alignment, so build in your own margin if your analysis needs a guaranteed depth."],
   coverage: ["Coverage",
     "Average number of times each base in the genome is sequenced. 30x means every base is read ~30 times on average.",
     "Converted to reads as coverage × genome size ÷ (read length × 2 for PE), so genome size must be right. Rough guides: 30x germline variants, 100x+ de novo assembly, several hundred x for low-frequency variants."],
@@ -422,9 +411,6 @@ const TIPS = {
   phix_percent: ["PhiX control library",
     "Share of the flowcell taken by the PhiX control library. These clusters are not available to your samples.",
     "PhiX has a balanced base composition (45% GC / 55% AT). Low-diversity libraries such as 16S and amplicons lack that balance, so the default for them is 40% — Illumina's recommendation for the NextSeq 1000/2000 — which costs you 40% of the output. ATGC adds the control library as requested. Other applications use ~2% purely for run-quality monitoring."],
-  usable_read_fraction: ["Usable read fraction",
-    "Fraction of raw reads expected to survive QC, trimming, and alignment.",
-    "Raw output is never all usable — reads are lost to failed filters, adapters, duplicates, and unaligned sequence. The tool inflates your depth request by this factor so you receive the depth you asked for. 0.85 is a general placeholder."]
 };
 
 /* ---------------- tooltip rendering ---------------- */
@@ -475,7 +461,7 @@ function applyDefaults(app) {
   state = {
     appId: app.id, mode: app.mode, readLength: app.rl,
     reads: app.reads, coverage: app.cov, genome: app.genome,
-    samples: app.samples, phix: app.phix, usable: app.usable
+    samples: app.samples, phix: app.phix
   };
   writeInputs(app);
 }
@@ -487,7 +473,6 @@ function writeInputs(app) {
   $("coverage").value = state.coverage ?? "";
   $("genomeSize").value = state.genome ?? "";
   $("phix").value = state.phix;
-  $("usable").value = state.usable;
   $("modePE").setAttribute("aria-pressed", state.mode === "PE");
   $("modeSE").setAttribute("aria-pressed", state.mode === "SE");
 
@@ -513,20 +498,19 @@ function calc() {
   const app = APPS.find(a => a.id === state.appId);
   const bpc = state.mode === "PE" ? 2 : 1;
 
-  let usablePerSample;
+  let readsPerSample;
   if (app.driver === "coverage") {
-    usablePerSample = (state.coverage * state.genome) / (state.readLength * bpc);
+    readsPerSample = (state.coverage * state.genome) / (state.readLength * bpc);
   } else {
-    usablePerSample = state.reads;
+    readsPerSample = state.reads;
   }
-  const rawPerSample = usablePerSample / state.usable;
-  const demand = rawPerSample * state.samples;
+  const demand = readsPerSample * state.samples;
 
   const rows = FLOWCELLS.map(fc => {
     const maxRL = state.mode === "PE" ? fc.pe : fc.se;
     const available = fc.readsM * (1 - state.phix / 100);
-    // epsilon absorbs float error: 60 / (0.05/0.85) is 1019.999... not 1020
-    const maxSamples = rawPerSample > 0 ? Math.floor(available / rawPerSample + 1e-9) : 0;
+    // epsilon absorbs float error: 60 / 0.1 lands on 599.9999... not 600
+    const maxSamples = readsPerSample > 0 ? Math.floor(available / readsPerSample + 1e-9) : 0;
 
     let ok = true, why = "", compatible = true;
     if (maxRL === null) { ok = compatible = false; why = state.mode + " not supported"; }
@@ -537,16 +521,17 @@ function calc() {
     return { fc, maxRL, available, maxSamples, ok, compatible, why };
   });
 
-  // rank by cost proxy: flowcell tier first, then cycle count. Output size is NOT a
-  // usable proxy — P2 600 yields fewer reads than P2 100 but costs far more.
+  // Rank by explicit cost order (flowcells.csv:cost_rank). Neither output size nor
+  // flowcell tier works as a proxy: P4 50 is cheaper than P3 100 despite the higher
+  // tier, and P2 600 yields fewer reads than P2 100 while costing far more.
   const rec = rows.filter(r => r.ok)
-                  .sort((a, b) => a.fc.tier - b.fc.tier || a.fc.cycles - b.fc.cycles)[0] || null;
+                  .sort((a, b) => a.fc.costRank - b.fc.costRank)[0] || null;
 
   // when nothing fits, the biggest compatible kit tells the user what IS achievable
   const best = rows.filter(r => r.compatible)
                    .sort((a, b) => b.maxSamples - a.maxSamples)[0] || null;
 
-  return { app, rows, rec, best, rawPerSample, usablePerSample, demand, bpc };
+  return { app, rows, rec, best, readsPerSample, demand, bpc };
 }
 
 /* ---------------- render ---------------- */
@@ -563,7 +548,7 @@ function tipIcon(key) {
 
 function render() {
   const r = calc();
-  const valid = isFinite(r.rawPerSample) && r.rawPerSample > 0 && state.samples > 0;
+  const valid = isFinite(r.readsPerSample) && r.readsPerSample > 0 && state.samples > 0;
 
   /* hero */
   let h = "";
@@ -582,7 +567,7 @@ function render() {
     h = '<div class="rec-label">Recommended flowcell</div>' +
         '<div class="rec-name">' + r.rec.fc.name + '</div>' +
         '<div class="rec-sub">' + state.samples + ' samples × ' +
-        fmt(r.rawPerSample) + ' M raw reads = ' + fmt(r.demand) + ' M of ' +
+        fmt(r.readsPerSample) + ' M reads = ' + fmt(r.demand) + ' M of ' +
         fmt(r.rec.available) + ' M available</div>';
   } else if (r.best) {
     const runs = Math.ceil(state.samples / Math.max(r.best.maxSamples, 1));
@@ -606,8 +591,8 @@ function render() {
        '<div class="stat"><div class="k">Max samples ' +
        (valid && shown ? 'on ' + shown.fc.name : 'on this flowcell') + ' ' + tipIcon("num_samples") + '</div>' +
        '<div class="v">' + (shown && valid ? shown.maxSamples.toLocaleString() : "—") + '</div></div>' +
-       '<div class="stat"><div class="k">Raw reads per sample</div>' +
-       '<div class="v">' + (valid ? fmt(r.rawPerSample) : "—") + ' <small>M</small></div></div>' +
+       '<div class="stat"><div class="k">Reads per sample</div>' +
+       '<div class="v">' + (valid ? fmt(r.readsPerSample) : "—") + ' <small>M</small></div></div>' +
        '<div class="stat"><div class="k">PhiX share ' + tipIcon("phix_percent") + '</div>' +
        '<div class="v">' + state.phix + ' <small>%</small></div></div>' +
        '</div>';
@@ -647,7 +632,6 @@ function init() {
   num("coverage", "coverage", false);
   num("genomeSize", "genome", false);
   num("phix", "phix", false);
-  num("usable", "usable", false);
 
   [$("modePE"), $("modeSE")].forEach(b => b.addEventListener("click", () => {
     state.mode = b.dataset.mode;
