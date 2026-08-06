@@ -1,0 +1,669 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NextSeq 2000 Flowcell Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;600;700&family=Raleway:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ATGC design tokens — mirrors ATGC_website_2025/webpage/index.html */
+  :root{
+    --bg:#ffffff;
+    --panel:#f7fafd;
+    --panel2:#eef3f8;
+    --line:#e3ebf2;
+    --ink:#262626;
+    --head:#1b2a36;
+    --muted:#5f7488;
+    --muted2:#93a4b5;
+    /* the four brand colours */
+    --red:#e73334;
+    --orange:#fbac45;
+    --blue:#289de0;
+    --pink:#e82281;
+    --radius:14px;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+    --sans:'Roboto',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --display:'Raleway','Roboto',sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:22px 20px 56px;
+    background:var(--bg); color:var(--ink);
+    font-family:var(--sans); font-size:15px; line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1290px;margin:0 auto}
+  a{color:var(--blue);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  header{margin-bottom:22px}
+  h1{
+    font-family:var(--display); font-size:clamp(26px,3.4vw,36px); line-height:1.05;
+    margin:0; font-weight:700; letter-spacing:-.5px; color:var(--head);
+  }
+  .brandline{
+    height:5px; width:128px; border-radius:3px; margin:14px 0 16px;
+    background:linear-gradient(90deg,var(--red),var(--orange) 34%,var(--blue) 67%,var(--pink));
+  }
+  .sub{color:var(--muted);font-size:15px;max-width:760px}
+
+  /* inputs stacked on the left, result panel stretched to match their combined height */
+  .cols{display:grid;grid-template-columns:390px 1fr;gap:24px;align-items:stretch}
+  @media(max-width:880px){.cols{grid-template-columns:1fr}}
+
+  .panel{
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:12px; padding:18px;
+  }
+  .panel+.panel{margin-top:18px}
+  h2{
+    font-family:var(--display); font-size:12px; text-transform:uppercase;
+    letter-spacing:1px; color:var(--muted); margin:0 0 14px; font-weight:600;
+  }
+
+  .field{margin-bottom:15px}
+  .field:last-child{margin-bottom:0}
+  label.lbl{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;margin-bottom:6px;color:var(--head)}
+  .unit{color:var(--muted2);font-weight:400;font-size:12.5px}
+  input[type=number],select{
+    width:100%; padding:9px 11px; font-family:var(--sans); font-size:14px;
+    color:var(--ink); background:#fff;
+    border:1px solid var(--line); border-radius:10px;
+  }
+  input:focus,select:focus,.info:focus-visible,.cta:focus-visible,.btn:focus-visible{
+    outline:2px solid var(--blue); outline-offset:1px;
+  }
+  input:focus,select:focus{border-color:var(--blue)}
+  input:disabled{background:var(--panel2);color:var(--muted)}
+
+  .seg{display:flex}
+  .seg button{
+    flex:1; padding:9px 10px; font-family:var(--sans); font-size:13.5px; font-weight:600;
+    cursor:pointer; background:#fff; color:var(--muted);
+    border:1px solid var(--line); transition:.16s;
+  }
+  .seg button:first-child{border-radius:10px 0 0 10px}
+  .seg button:last-child{border-radius:0 10px 10px 0;border-left:none}
+  .seg button:hover{border-color:#9fd0ee;color:var(--ink)}
+  .seg button[aria-pressed=true]{
+    background:linear-gradient(135deg,rgba(40,157,224,.12),rgba(232,34,129,.07));
+    border-color:var(--blue); color:#15394f;
+    box-shadow:0 8px 22px -14px rgba(40,157,224,.7);
+  }
+  .seg button:last-child[aria-pressed=true]{border-left:1px solid var(--blue)}
+
+  /* hover explanations */
+  .info{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:15px;height:15px;flex:none;padding:0;
+    border-radius:50%;border:1px solid var(--muted2);background:#fff;
+    color:var(--muted);font-family:var(--mono);font-size:10px;font-weight:500;line-height:1;
+    cursor:help;
+  }
+  .info:hover{border-color:var(--blue);color:var(--blue)}
+  .tipwrap{position:relative;display:inline-flex}
+  .tip{
+    position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);
+    width:300px;max-width:78vw;z-index:20;
+    background:var(--head);color:#eef3f8;
+    padding:10px 12px;border-radius:10px;
+    font-size:12.5px;line-height:1.45;font-weight:400;text-align:left;white-space:normal;
+    box-shadow:0 24px 60px -30px rgba(20,50,80,.75);
+    opacity:0;visibility:hidden;transition:opacity .12s ease;pointer-events:none;
+  }
+  .tip b{display:block;margin-bottom:3px;color:#fff}
+  .tip .det{display:block;margin-top:6px;color:var(--muted2)}
+  .tip::after{
+    content:"";position:absolute;top:100%;left:50%;margin-left:-5px;
+    border:5px solid transparent;border-top-color:var(--head);
+  }
+  .tipwrap:hover .tip,
+  .info:focus-visible + .tip,
+  .tipwrap.open .tip{opacity:1;visibility:visible}
+  .tipwrap.open .info{border-color:var(--blue);color:var(--blue)}
+
+  .note{font-size:12px;color:var(--muted);margin-top:6px}
+  .note.lock{color:#b06a12}
+  .adv summary{cursor:pointer;font-size:12.5px;color:var(--muted);padding-top:4px;user-select:none;font-weight:600}
+  .adv[open] summary{margin-bottom:13px}
+
+  .btn{
+    padding:8px 14px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;
+    background:#fff;color:var(--muted);border:1px solid var(--line);border-radius:10px;transition:.16s;
+  }
+  .btn:hover{border-color:#9fd0ee;color:var(--ink);transform:translateY(-1px)}
+
+  /* results */
+  .hero{
+    background:#fff;border-color:var(--line);
+    box-shadow:0 24px 60px -44px rgba(20,50,80,.45);
+    padding:26px 28px;
+    display:flex;flex-direction:column;   /* lets the CTA row sit at the bottom */
+  }
+  .rec-label{
+    font-family:var(--display);font-size:17px;font-weight:600;
+    text-transform:uppercase;letter-spacing:1.6px;color:var(--muted);
+    padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid var(--line);
+  }
+  .rec-name{font-family:var(--display);font-size:clamp(26px,5.2vw,38px);font-weight:700;letter-spacing:-.6px;margin:0 0 4px;color:var(--head);overflow-wrap:break-word}
+  .rec-none{font-family:var(--display);font-size:clamp(19px,3.6vw,24px);font-weight:600;color:var(--red);margin:0 0 4px}
+  .rec-sub{color:var(--muted);font-size:14.5px;max-width:760px}
+
+  .stats{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+    background:var(--line);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;margin-top:18px;
+  }
+  @media(max-width:560px){.stats{grid-template-columns:1fr}}
+  .stat{background:var(--panel);padding:13px 15px}
+  .stat .k{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:5px}
+  .stat .v{font-family:var(--display);font-size:21px;font-weight:700;margin-top:4px;color:var(--head);font-variant-numeric:tabular-nums}
+  .stat .v small{font-family:var(--sans);font-size:12px;font-weight:400;color:var(--muted2)}
+
+  /* low-diversity library warning */
+  .warnbox{
+    margin-top:14px;padding:12px 14px;
+    background:#fdf3e2;border:1px solid #f6d9a6;
+    border-left:4px solid var(--orange);
+    border-radius:10px;font-size:12.5px;line-height:1.5;color:var(--ink);
+  }
+  .warnbox .wt{
+    display:flex;align-items:center;gap:7px;font-family:var(--display);
+    font-weight:600;color:#b06a12;margin-bottom:7px;font-size:13px;
+  }
+  .warnbox p{margin:0 0 8px}
+  .warnbox p:last-child{margin-bottom:0}
+  .warnbox b{font-weight:600}
+  .warnbox a{color:#b06a12;font-weight:600;text-decoration:underline}
+
+  /* call-to-action buttons */
+  .ctarow{display:flex;flex-wrap:wrap;gap:10px;margin-top:auto;padding-top:20px;border-top:1px solid var(--line)}
+  .cta{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:var(--sans);font-size:13.5px;font-weight:600;
+    padding:10px 18px;border-radius:999px;border:1px solid transparent;
+    cursor:pointer;transition:.16s;text-decoration:none;
+  }
+  .cta:hover{transform:translateY(-1px);text-decoration:none}
+  .cta-app{background:var(--blue);color:#fff;box-shadow:0 10px 24px -14px rgba(40,157,224,.9)}
+  .cta-app:hover{background:#1d86c4;box-shadow:0 14px 28px -14px rgba(40,157,224,1)}
+  .cta-contact{background:#fff;color:var(--pink);border-color:var(--pink)}
+  .cta-contact:hover{background:var(--pink);color:#fff;box-shadow:0 14px 28px -16px rgba(232,34,129,.9)}
+  .cta-off{background:var(--panel2);color:var(--muted2);border-color:var(--line);cursor:default}
+  .cta-off:hover{transform:none}
+
+  footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted2)}
+
+  /* ---------- tablet ---------- */
+  @media(max-width:880px){
+    body{padding:20px 16px 44px}
+    .hero{padding:22px 20px}
+    /* the result no longer sits beside the inputs, so nothing to stretch to */
+    .ctarow{margin-top:22px}
+  }
+
+  /* ---------- phone ---------- */
+  @media(max-width:600px){
+    body{padding:16px 13px 36px;font-size:14.5px}
+    header{margin-bottom:18px}
+    .brandline{margin:12px 0 12px}
+    .sub{font-size:14px}
+    .panel{padding:15px 14px;border-radius:11px}
+    .panel+.panel{margin-top:14px}
+    .cols{gap:16px}
+    .hero{padding:18px 15px}
+    .rec-label{font-size:14px;letter-spacing:1.1px;padding-bottom:10px;margin-bottom:12px}
+    .stats{margin-top:15px}
+    .stat{padding:11px 13px}
+    .stat .v{font-size:19px}
+    /* 16px keeps iOS Safari from zooming in when a field takes focus */
+    input[type=number],select{font-size:16px;padding:10px 11px}
+    .seg button{font-size:14px;padding:10px 8px}
+    /* buttons go full width so they are easy to hit with a thumb */
+    .ctarow{flex-direction:column;align-items:stretch;padding-top:16px}
+    .cta{justify-content:center;padding:12px 18px;font-size:14px}
+    .btn{padding:10px 14px}
+    /* larger tap target for the tooltip trigger */
+    .info{width:22px;height:22px;font-size:12px}
+    .warnbox{padding:11px 12px}
+    footer{margin-top:20px}
+  }
+
+  /* on a narrow screen a tooltip anchored to its icon would overflow sideways,
+     so it docks to the bottom of the viewport instead */
+  @media(max-width:560px){
+    .tip{
+      position:fixed;left:12px;right:12px;bottom:14px;top:auto;
+      width:auto;max-width:none;transform:none;
+      font-size:13px;padding:13px 15px;
+      box-shadow:0 -6px 40px -12px rgba(20,50,80,.5);
+    }
+    .tip::after{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>NextSeq 2000 Flowcell Calculator</h1>
+    <div class="brandline"></div>
+    <div class="sub">Pick an application, adjust the run parameters, get the flowcell that fits.</div>
+  </header>
+
+  <div class="cols">
+
+    <!-- ---------- INPUTS ---------- -->
+    <div class="inputs-col">
+      <div class="panel">
+        <h2>Application</h2>
+        <div class="field">
+          <select id="app" aria-label="Application"></select>
+          <div class="note" id="appNote"></div>
+        </div>
+        <div id="ldWarn"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Sequencing parameters</h2>
+
+        <div class="field">
+          <label class="lbl" for="numSamples">Number of samples <span id="t_num_samples"></span></label>
+          <input type="number" id="numSamples" min="1" step="1">
+        </div>
+
+        <div class="field">
+          <label class="lbl">Run mode <span id="t_run_mode"></span></label>
+          <div class="seg" role="group" aria-label="Run mode">
+            <button type="button" id="modePE" data-mode="PE">Paired-end</button>
+            <button type="button" id="modeSE" data-mode="SE">Single-end</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="lbl" for="readLength">Read length <span class="unit">bp per read</span> <span id="t_read_length"></span></label>
+          <input type="number" id="readLength" min="1" step="1">
+          <div class="note" id="rlNote"></div>
+        </div>
+
+        <div class="field" id="f_reads">
+          <label class="lbl" for="numReads">Number of reads <span class="unit">M per sample</span> <span id="t_num_reads"></span></label>
+          <input type="number" id="numReads" min="0" step="0.01">
+        </div>
+
+        <div class="field" id="f_cov">
+          <label class="lbl" for="coverage">Coverage <span class="unit">x fold</span> <span id="t_coverage"></span></label>
+          <input type="number" id="coverage" min="0" step="1">
+        </div>
+
+        <div class="field" id="f_gen">
+          <label class="lbl" for="genomeSize">Genome size <span class="unit">Mb</span> <span id="t_genome_size"></span></label>
+          <input type="number" id="genomeSize" min="0" step="1">
+        </div>
+
+        <details class="adv">
+          <summary>Advanced</summary>
+
+          <div class="field">
+            <label class="lbl" for="phix">PhiX control library <span class="unit">% of flowcell</span> <span id="t_phix_percent"></span></label>
+            <input type="number" id="phix" min="0" max="99" step="1">
+            <div class="note" id="phixNote"></div>
+          </div>
+
+          <div class="field">
+            <label class="lbl" for="usable">Usable read fraction <span id="t_usable_read_fraction"></span></label>
+            <input type="number" id="usable" min="0.05" max="1" step="0.05">
+          </div>
+        </details>
+
+        <div style="margin-top:16px"><button class="btn" id="reset">Reset to defaults</button></div>
+      </div>
+    </div>
+
+    <!-- ---------- RESULT: fills the full height of the input column ---------- -->
+    <div class="panel hero" id="hero"></div>
+
+  </div>
+
+  <footer>
+    Application defaults are placeholder values pending review — verify against your own protocols before ordering a run.
+  </footer>
+</div>
+
+<script>
+/* ---------------- data (from flowcells.csv) ---------------- */
+const FLOWCELLS = [
+  {id:"p1_100", name:"P1 100 cycles", tier:1, cycles:100, se:100, pe:50,   readsM:100},
+  {id:"p1_300", name:"P1 300 cycles", tier:1, cycles:300, se:300, pe:150,  readsM:100},
+  {id:"p1_600", name:"P1 600 cycles", tier:1, cycles:600, se:null, pe:300, readsM:100},
+  {id:"p2_100", name:"P2 100 cycles", tier:2, cycles:100, se:100, pe:50,   readsM:400},
+  {id:"p2_200", name:"P2 200 cycles", tier:2, cycles:200, se:150, pe:100,  readsM:400},
+  {id:"p2_300", name:"P2 300 cycles", tier:2, cycles:300, se:null, pe:150, readsM:400},
+  {id:"p2_600", name:"P2 600 cycles", tier:2, cycles:600, se:null, pe:300, readsM:300},
+  {id:"p3_100", name:"P3 100 cycles", tier:3, cycles:100, se:100, pe:50,   readsM:1200},
+  {id:"p3_200", name:"P3 200 cycles", tier:3, cycles:200, se:150, pe:100,  readsM:1200},
+  {id:"p3_300", name:"P3 300 cycles", tier:3, cycles:300, se:null, pe:150, readsM:1200},
+  {id:"p4_50",  name:"P4 50 cycles",  tier:4, cycles:50,  se:72,  pe:null, readsM:1800},
+  {id:"p4_100", name:"P4 100 cycles", tier:4, cycles:100, se:100, pe:50,   readsM:1800},
+  {id:"p4_200", name:"P4 200 cycles", tier:4, cycles:200, se:150, pe:100,  readsM:1800},
+  {id:"p4_300", name:"P4 300 cycles", tier:4, cycles:300, se:null, pe:150, readsM:1800}
+];
+
+/* ---------------- data (from applications.csv) ---------------- */
+const APP_BASE = "https://atgc.net.technion.ac.il/applications/";
+const CONTACT_URL = "https://atgc.net.technion.ac.il/contact-us/";
+const L = slug => APP_BASE + slug + "/";
+
+/* Shown for applications flagged lowDiversity. Percentages per Illumina's
+   "How much PhiX spike in is recommended when sequencing low diversity libraries" (KB 000001527). */
+const PHIX_KB_URL = "https://knowledge.illumina.com/instrumentation/general/instrumentation-general-reference_material-list/000001527";
+const LOW_DIVERSITY_WARNING =
+  '<div class="warnbox">' +
+    '<div class="wt">⚠ Low-diversity library</div>' +
+    '<p>Every fragment carries nearly the same sequence, so the flow cell sees one colour per cycle ' +
+      'instead of a balanced mix — which degrades base calling and can fail the run. A <b>PhiX control ' +
+      'library</b> (45% GC / 55% AT) restores the balance.</p>' +
+    '<p><b>ATGC will add the control library as requested</b> — for low-diversity libraries the ' +
+      'default is <b>40%</b>. That share is not available to your samples, and the calculation ' +
+      'below already accounts for it. ' +
+      '<a href="' + PHIX_KB_URL + '" target="_blank" rel="noopener">Why 40% →</a></p>' +
+  '</div>';
+
+const APPS = [
+  {id:"rnaseq_polya", name:"RNAseq polyA", driver:"reads", mode:"SE", rl:72, rlMax:100, minRL:72, reads:25, cov:null, genome:null, samples:12, phix:2, usable:0.85, lowDiversity:false, link:L("rna-seq"), linkLabel:"RNA-seq",
+   note:"Standard mRNA profiling / differential expression. 25 M reads per sample."},
+  {id:"rnaseq_rrna_mammalian", name:"RNAseq mammalian rRNA depletion", driver:"reads", mode:"SE", rl:72, rlMax:100, minRL:72, reads:40, cov:null, genome:null, samples:12, phix:2, usable:0.85, lowDiversity:false, link:L("rna-seq"), linkLabel:"RNA-seq",
+   note:"Total RNA — deeper than polyA to cover residual rRNA, intronic and non-coding reads."},
+  {id:"rnaseq_rrna_bacteria", name:"RNAseq bacteria rRNA depletion", driver:"reads", mode:"SE", rl:72, rlMax:100, minRL:72, reads:20, cov:null, genome:null, samples:12, phix:2, usable:0.85, lowDiversity:false, link:L("rna-seq"), linkLabel:"RNA-seq",
+   note:"Small transcriptome — 20 M reads per sample is sufficient."},
+  {id:"assembly_denovo", name:"Assembly de novo", driver:"coverage", mode:"PE", rl:300, minRL:150, reads:null, cov:60, genome:5, samples:4, phix:2, usable:0.85, lowDiversity:false, link:L("dna-seq"), linkLabel:"DNA-seq",
+   note:"Genome size 5 Mb = bacterial isolate — set your real target size. 2×300 needs a 600-cycle kit."},
+  {id:"variant_germline", name:"Variant analysis (germline, >50%)", driver:"coverage", mode:"SE", rl:100, minRL:100, reads:null, cov:40, genome:3200, samples:8, phix:2, usable:0.85, lowDiversity:false, link:L("dna-seq"), linkLabel:"DNA-seq",
+   note:"Human WGS at 40x. Single-end needs twice the reads of paired-end for the same coverage."},
+  {id:"variant_lowfreq", name:"Variant analysis (<50%)", driver:"coverage", mode:"SE", rl:100, minRL:100, reads:null, cov:100, genome:3200, samples:8, phix:2, usable:0.85, lowDiversity:false, link:L("dna-seq"), linkLabel:"DNA-seq",
+   note:"100x. For a targeted panel, enter the panel size as genome size — not 3200 Mb."},
+  {id:"amplicons", name:"Amplicons", driver:"reads", mode:"PE", rl:300, minRL:250, reads:null, cov:null, genome:null, samples:48, phix:40, usable:0.85, lowDiversity:true, link:L("amplicon-seq"), linkLabel:"Amplicon-seq",
+   note:"Reads per sample is not set in applications.csv — enter a value to get a recommendation. Low-diversity library: 40% PhiX control required."},
+  {id:"16s", name:"16S", driver:"reads", mode:"PE", rl:300, minRL:250, reads:0.1, cov:null, genome:null, samples:96, phix:40, usable:0.85, lowDiversity:true, link:L("amplicon-seq"), linkLabel:"Amplicon-seq",
+   note:"100 k reads per sample. V3–V4 needs 2×300 to overlap. Low-diversity library: 40% PhiX control required."},
+  {id:"metagenomics", name:"Metagenomics", driver:"coverage", mode:"PE", rl:150, minRL:100, reads:100, cov:10, genome:5000, samples:8, phix:2, usable:0.85, lowDiversity:false, link:L("metagenomics"), linkLabel:"Metagenomics",
+   note:"Coverage-driven: genome size = estimated total community size, 10x is survey-level only. (The 100 M reads/sample in the CSV is unused while driver = coverage.)"},
+  {id:"chipseq_histone", name:"ChIP-seq / CUT&RUN (histone mark)", driver:"reads", mode:"PE", rl:50, minRL:null, reads:40, cov:null, genome:null, samples:12, phix:2, usable:0.85, lowDiversity:false, link:L("chip-seq"), linkLabel:"ChIP-seq",
+   note:"Broad marks need more depth than transcription factors. 40 M reads per sample."},
+  {id:"chipseq_tf", name:"ChIP-seq / CUT&RUN (transcription factor)", driver:"reads", mode:"PE", rl:50, minRL:null, reads:30, cov:null, genome:null, samples:12, phix:2, usable:0.85, lowDiversity:false, link:L("chip-seq"), linkLabel:"ChIP-seq",
+   note:"Sharp peaks. 30 M reads per sample; CUT&RUN typically needs less."},
+  {id:"rrbs", name:"RRBS", driver:"reads", mode:"PE", rl:50, minRL:null, reads:40, cov:null, genome:null, samples:12, phix:30, usable:0.85, lowDiversity:false, link:L("dna-methylation"), linkLabel:"DNA Methylation",
+   note:"Reduced base diversity at the MspI site — 30% PhiX spike. 40 M reads per sample."}
+];
+
+/* ---------------- data (from parameters.csv) ---------------- */
+const TIPS = {
+  num_samples: ["Number of samples",
+    "How many libraries you want to pool and sequence together on one flowcell.",
+    "The tool checks whether this many samples fit on each flowcell at your requested depth, and also reports the maximum that would fit. Index compatibility and pooling balance are not considered."],
+  read_length: ["Read length",
+    "Bases sequenced per read. For paired-end, enter the length of ONE mate — 2×150 means you enter 150.",
+    "Determines which kit you need: total cycles are roughly read length × 2 for PE, plus index cycles. Some applications have a minimum — 16S and amplicons need 2×300 to overlap the V3–V4 region."],
+  run_mode: ["Paired-end / single-end",
+    "Paired-end sequences both ends of each fragment; single-end sequences one end only.",
+    "PE doubles the bases per cluster, so it halves the reads needed for a given coverage — but it needs twice the cycles. Use PE for assembly, variants, and anything needing overlap; SE is usually enough for counting applications like ChIP-seq."],
+  num_reads: ["Number of reads",
+    "Sequencing depth per sample, in millions. For paired-end, one read PAIR counts as one read.",
+    "This is the usable depth you need after QC and alignment; the tool divides by the usable read fraction to get the raw reads it reserves. Under-sequencing is the most common reason a run has to be repeated."],
+  coverage: ["Coverage",
+    "Average number of times each base in the genome is sequenced. 30x means every base is read ~30 times on average.",
+    "Converted to reads as coverage × genome size ÷ (read length × 2 for PE), so genome size must be right. Rough guides: 30x germline variants, 100x+ de novo assembly, several hundred x for low-frequency variants."],
+  genome_size: ["Genome size",
+    "Size of the target sequence space, in megabases. This drives the coverage calculation, so a wrong value scales your whole run.",
+    "Human ~3200 Mb, E. coli ~5 Mb, yeast ~12 Mb. For a panel or exome, enter the TARGET region size, not the whole genome. For metagenomics this is the estimated community size and is inherently a guess."],
+  phix_percent: ["PhiX control library",
+    "Share of the flowcell taken by the PhiX control library. These clusters are not available to your samples.",
+    "PhiX has a balanced base composition (45% GC / 55% AT). Low-diversity libraries such as 16S and amplicons lack that balance, so the default for them is 40% — Illumina's recommendation for the NextSeq 1000/2000 — which costs you 40% of the output. ATGC adds the control library as requested. Other applications use ~2% purely for run-quality monitoring."],
+  usable_read_fraction: ["Usable read fraction",
+    "Fraction of raw reads expected to survive QC, trimming, and alignment.",
+    "Raw output is never all usable — reads are lost to failed filters, adapters, duplicates, and unaligned sequence. The tool inflates your depth request by this factor so you receive the depth you asked for. 0.85 is a general placeholder."]
+};
+
+/* ---------------- tooltip rendering ---------------- */
+function closeTips(except) {
+  document.querySelectorAll(".tipwrap.open").forEach(w => {
+    if (w !== except) {
+      w.classList.remove("open");
+      w.querySelector(".info").setAttribute("aria-expanded", "false");
+    }
+  });
+}
+
+function mountTips() {
+  for (const key in TIPS) {
+    const slot = document.getElementById("t_" + key);
+    if (!slot) continue;
+    const [title, short, detail] = TIPS[key];
+    const w = document.createElement("span");
+    w.className = "tipwrap";
+    w.innerHTML =
+      '<button type="button" class="info" aria-expanded="false" aria-label="About ' + title + '">i</button>' +
+      '<span class="tip" role="tooltip"><b></b><span class="s"></span><span class="det"></span></span>';
+    w.querySelector("b").textContent = title;
+    w.querySelector(".s").textContent = short;
+    w.querySelector(".det").textContent = detail;
+    const btn = w.querySelector(".info");
+    btn.title = short;   // native fallback
+
+    // hover alone is unreachable on touch devices — tap toggles the same tooltip
+    btn.addEventListener("click", e => {
+      e.preventDefault();   // the button sits inside a <label>; don't focus the field
+      e.stopPropagation();
+      const open = w.classList.toggle("open");
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+      closeTips(w);
+    });
+    slot.replaceWith(w);
+  }
+  document.addEventListener("click", () => closeTips(null));
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeTips(null); });
+}
+
+/* ---------------- state ---------------- */
+const $ = id => document.getElementById(id);
+let state = {};
+
+function applyDefaults(app) {
+  state = {
+    appId: app.id, mode: app.mode, readLength: app.rl,
+    reads: app.reads, coverage: app.cov, genome: app.genome,
+    samples: app.samples, phix: app.phix, usable: app.usable
+  };
+  writeInputs(app);
+}
+
+function writeInputs(app) {
+  $("numSamples").value = state.samples;
+  $("readLength").value = state.readLength;
+  $("numReads").value = state.reads ?? "";
+  $("coverage").value = state.coverage ?? "";
+  $("genomeSize").value = state.genome ?? "";
+  $("phix").value = state.phix;
+  $("usable").value = state.usable;
+  $("modePE").setAttribute("aria-pressed", state.mode === "PE");
+  $("modeSE").setAttribute("aria-pressed", state.mode === "SE");
+
+  const cov = app.driver === "coverage";
+  $("f_reads").style.display = cov ? "none" : "";
+  $("f_cov").style.display = cov ? "" : "none";
+  $("f_gen").style.display = cov ? "" : "none";
+
+  $("phixNote").className = "note" + (app.lowDiversity ? " lock" : "");
+  $("phixNote").textContent = app.lowDiversity
+    ? "40% is the default for low-diversity libraries. ATGC adds the control library as requested."
+    : "";
+  $("ldWarn").innerHTML = app.lowDiversity ? LOW_DIVERSITY_WARNING : "";
+  $("appNote").textContent = app.note;
+  $("rlNote").textContent =
+    app.rlMax ? "Typical range " + app.rl + "–" + app.rlMax + " bp — defaults to the lower end."
+    : app.minRL ? "This application needs at least " + app.minRL + " bp per read."
+    : "";
+}
+
+/* ---------------- calculation (see CALCULATION.md) ---------------- */
+function calc() {
+  const app = APPS.find(a => a.id === state.appId);
+  const bpc = state.mode === "PE" ? 2 : 1;
+
+  let usablePerSample;
+  if (app.driver === "coverage") {
+    usablePerSample = (state.coverage * state.genome) / (state.readLength * bpc);
+  } else {
+    usablePerSample = state.reads;
+  }
+  const rawPerSample = usablePerSample / state.usable;
+  const demand = rawPerSample * state.samples;
+
+  const rows = FLOWCELLS.map(fc => {
+    const maxRL = state.mode === "PE" ? fc.pe : fc.se;
+    const available = fc.readsM * (1 - state.phix / 100);
+    // epsilon absorbs float error: 60 / (0.05/0.85) is 1019.999... not 1020
+    const maxSamples = rawPerSample > 0 ? Math.floor(available / rawPerSample + 1e-9) : 0;
+
+    let ok = true, why = "", compatible = true;
+    if (maxRL === null) { ok = compatible = false; why = state.mode + " not supported"; }
+    else if (state.readLength > maxRL) { ok = compatible = false; why = "read length > " + maxRL + " bp"; }
+    else if (app.minRL && state.readLength < app.minRL) { ok = compatible = false; why = "below " + app.minRL + " bp minimum"; }
+    else if (maxSamples < state.samples) { ok = false; why = "fits " + maxSamples + " of " + state.samples + " samples"; }
+
+    return { fc, maxRL, available, maxSamples, ok, compatible, why };
+  });
+
+  // rank by cost proxy: flowcell tier first, then cycle count. Output size is NOT a
+  // usable proxy — P2 600 yields fewer reads than P2 100 but costs far more.
+  const rec = rows.filter(r => r.ok)
+                  .sort((a, b) => a.fc.tier - b.fc.tier || a.fc.cycles - b.fc.cycles)[0] || null;
+
+  // when nothing fits, the biggest compatible kit tells the user what IS achievable
+  const best = rows.filter(r => r.compatible)
+                   .sort((a, b) => b.maxSamples - a.maxSamples)[0] || null;
+
+  return { app, rows, rec, best, rawPerSample, usablePerSample, demand, bpc };
+}
+
+/* ---------------- render ---------------- */
+const fmt = n => n >= 100 ? Math.round(n).toLocaleString()
+              : n >= 10  ? n.toFixed(1)
+              : n >= 1   ? n.toFixed(2)
+              : n.toFixed(3);
+
+function tipIcon(key) {
+  const [title, short] = TIPS[key];
+  return '<span class="tipwrap"><button type="button" class="info" title="' + short.replace(/"/g,"&quot;") +
+         '" aria-label="About ' + title + '">i</button></span>';
+}
+
+function render() {
+  const r = calc();
+  const valid = isFinite(r.rawPerSample) && r.rawPerSample > 0 && state.samples > 0;
+
+  /* hero */
+  let h = "";
+  if (!valid) {
+    const need = [];
+    if (state.samples > 0 === false) need.push("number of samples");
+    if (r.app.driver === "coverage") {
+      if (!(state.coverage > 0)) need.push("coverage");
+      if (!(state.genome > 0)) need.push("genome size");
+    } else if (!(state.reads > 0)) need.push("number of reads");
+    h = '<div class="rec-label">Recommended flowcell</div>' +
+        '<div class="rec-none">Missing input</div>' +
+        '<div class="rec-sub">Enter ' + (need.join(" and ") || "all parameters") +
+        ' to get a recommendation.</div>';
+  } else if (r.rec) {
+    h = '<div class="rec-label">Recommended flowcell</div>' +
+        '<div class="rec-name">' + r.rec.fc.name + '</div>' +
+        '<div class="rec-sub">' + state.samples + ' samples × ' +
+        fmt(r.rawPerSample) + ' M raw reads = ' + fmt(r.demand) + ' M of ' +
+        fmt(r.rec.available) + ' M available</div>';
+  } else if (r.best) {
+    const runs = Math.ceil(state.samples / Math.max(r.best.maxSamples, 1));
+    h = '<div class="rec-label">Recommended flowcell</div>' +
+        '<div class="rec-none">No single flowcell fits</div>' +
+        '<div class="rec-sub">This run needs ' + fmt(r.demand) + ' M reads. The largest compatible kit, ' +
+        r.best.fc.name + ', holds ' + r.best.maxSamples.toLocaleString() + ' sample' +
+        (r.best.maxSamples === 1 ? '' : 's') + ' — so ' + state.samples + ' samples would take ' +
+        runs + ' runs. Reduce the sample count or the depth per sample to fit one flowcell.</div>';
+  } else {
+    h = '<div class="rec-label">Recommended flowcell</div>' +
+        '<div class="rec-none">No compatible flowcell</div>' +
+        '<div class="rec-sub">No kit supports ' + state.readLength + ' bp in ' +
+        (state.mode === "PE" ? "paired-end" : "single-end") + ' mode' +
+        (r.app.minRL ? ', and this application needs at least ' + r.app.minRL + ' bp' : '') +
+        '.</div>';
+  }
+
+  const shown = r.rec || r.best;
+  h += '<div class="stats">' +
+       '<div class="stat"><div class="k">Max samples ' +
+       (valid && shown ? 'on ' + shown.fc.name : 'on this flowcell') + ' ' + tipIcon("num_samples") + '</div>' +
+       '<div class="v">' + (shown && valid ? shown.maxSamples.toLocaleString() : "—") + '</div></div>' +
+       '<div class="stat"><div class="k">Raw reads per sample</div>' +
+       '<div class="v">' + (valid ? fmt(r.rawPerSample) : "—") + ' <small>M</small></div></div>' +
+       '<div class="stat"><div class="k">PhiX share ' + tipIcon("phix_percent") + '</div>' +
+       '<div class="v">' + state.phix + ' <small>%</small></div></div>' +
+       '</div>';
+
+  h += '<div class="ctarow">' +
+       (r.app.link
+         ? '<a class="cta cta-app" href="' + r.app.link + '" target="_blank" rel="noopener">' +
+           r.app.linkLabel + ' at ATGC <span aria-hidden="true">→</span></a>'
+         : '<span class="cta cta-off">No ATGC page mapped</span>') +
+       '<a class="cta cta-contact" href="' + CONTACT_URL + '" target="_blank" rel="noopener">' +
+         'Contact us</a>' +
+       '</div>';
+
+  $("hero").innerHTML = h;
+}
+
+/* ---------------- wiring ---------------- */
+function init() {
+  mountTips();
+
+  $("app").innerHTML = APPS.map(a => '<option value="' + a.id + '">' + a.name + '</option>').join("");
+  applyDefaults(APPS[0]);
+
+  $("app").addEventListener("change", e => {
+    applyDefaults(APPS.find(a => a.id === e.target.value));
+    render();
+  });
+
+  const num = (el, key, int) => $(el).addEventListener("input", e => {
+    const v = int ? parseInt(e.target.value, 10) : parseFloat(e.target.value);
+    state[key] = isNaN(v) ? 0 : v;
+    render();
+  });
+  num("numSamples", "samples", true);
+  num("readLength", "readLength", true);
+  num("numReads", "reads", false);
+  num("coverage", "coverage", false);
+  num("genomeSize", "genome", false);
+  num("phix", "phix", false);
+  num("usable", "usable", false);
+
+  [$("modePE"), $("modeSE")].forEach(b => b.addEventListener("click", () => {
+    state.mode = b.dataset.mode;
+    $("modePE").setAttribute("aria-pressed", state.mode === "PE");
+    $("modeSE").setAttribute("aria-pressed", state.mode === "SE");
+    render();
+  }));
+
+  $("reset").addEventListener("click", () => {
+    applyDefaults(APPS.find(a => a.id === state.appId));
+    render();
+  });
+
+  render();
+}
+init();
+</script>
+</body>
+</html>

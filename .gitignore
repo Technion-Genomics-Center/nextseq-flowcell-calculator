@@ -1,0 +1,9 @@
+# Internal working notes — not for publication
+data.txt
+
+# OS / editor cruft
+Thumbs.db
+desktop.ini
+.DS_Store
+*.swp
+*~
