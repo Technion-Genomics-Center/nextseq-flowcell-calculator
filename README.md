@@ -81,14 +81,6 @@ The palette is the four-stop `.brandline` gradient in
 pink `#e82281`. Tokens, fonts (Raleway / Roboto / IBM Plex Mono), radii, and panel
 treatments are copied from that file so the tool drops into the site cleanly.
 
-### Environment
-
-- Git is installed **per-user** at `%LOCALAPPDATA%\Programs\Git` — not on the system PATH
-  by default.
-- The working copy lives on a network share, so Git rejects it with "dubious ownership"
-  until the path is added to `safe.directory`. Git prints the exact command to run,
-  including the resolved UNC path — copy it from the error message.
-
 ### Never visually verified
 
 Every layout and styling change so far was verified structurally only — the browser
